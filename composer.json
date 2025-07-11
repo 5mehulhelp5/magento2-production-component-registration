@@ -21,6 +21,9 @@
         }
     },
     "extra": {
-        "class": "Hryvinskyi\\ProductionComponentRegistration\\ProductionComposerPlugin"
+        "class": "Hryvinskyi\\ProductionComponentRegistration\\ProductionRegistrationPlugin",
+        "hryvinskyi-production-component-registration": {
+            "filter-disabled-modules": false
+        }
     }
 }

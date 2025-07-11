@@ -13,7 +13,6 @@ use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
-use Magento\Framework\Component\ComponentRegistrar;
 use RuntimeException;
 use Throwable;
 
@@ -22,19 +21,13 @@ use Throwable;
  */
 final class ProductionRegistrationPlugin implements PluginInterface, EventSubscriberInterface
 {
-    private const REGISTRATION_FILE = 'app/etc/NonComposerComponentRegistration.php';
-    private const BACKUP_FILE = 'app/etc/NonComposerComponentRegistration.php.backup';
-    private const MAGENTO_BASE_FILE = 'vendor/magento/magento2-base/app/etc/NonComposerComponentRegistration.php';
-    private const REGISTRATION_GLOB_FILE = 'app/etc/registration_globlist.php';
-    
-    private const PRODUCTION_MODES = ['production'];
-    private const ENVIRONMENT_VARIABLES = ['MAGE_MODE', 'MAGENTO_MODE'];
-    
     private IOInterface $io;
     private string $projectRoot;
     private EnvironmentDetector $environmentDetector;
     private FileManager $fileManager;
     private RegistrationGenerator $registrationGenerator;
+    private ConfigurationManager $configurationManager;
+    private ModuleConfigReader $moduleConfigReader;
 
     public function activate(Composer $composer, IOInterface $io): void
     {
@@ -42,7 +35,14 @@ final class ProductionRegistrationPlugin implements PluginInterface, EventSubscr
         $this->projectRoot = getcwd() ?: throw new RuntimeException('Unable to determine project root');
         $this->environmentDetector = new EnvironmentDetector($this->projectRoot);
         $this->fileManager = new FileManager($this->projectRoot, $io);
-        $this->registrationGenerator = new RegistrationGenerator($this->projectRoot, $io);
+        $this->configurationManager = new ConfigurationManager($composer);
+        $this->moduleConfigReader = new ModuleConfigReader($this->projectRoot, $io);
+        $this->registrationGenerator = new RegistrationGenerator(
+            $this->projectRoot,
+            $io,
+            $this->configurationManager,
+            $this->moduleConfigReader
+        );
     }
 
     public function deactivate(Composer $composer, IOInterface $io): void
@@ -83,13 +83,25 @@ final class ProductionRegistrationPlugin implements PluginInterface, EventSubscr
     {
         $this->io->write('<info>Production mode detected - generating optimized registration file</info>');
         
+        if ($this->configurationManager->shouldFilterDisabledModules()) {
+            $this->io->write('<info>Module filtering enabled - only including enabled modules</info>');
+        }
+
         $this->fileManager->createBackupIfNeeded();
-        $componentsCount = $this->registrationGenerator->generateOptimizedRegistration();
-        
+        $result = $this->registrationGenerator->generateOptimizedRegistration();
+
         $this->io->write(sprintf(
             '<info>Generated optimized registration file with %d components</info>',
-            $componentsCount
+            $result['total']
         ));
+
+        if ($result['filtered'] > 0) {
+            $this->io->write(sprintf(
+                '<comment>Filtered out %d disabled modules</comment>',
+                $result['filtered']
+            ));
+        }
+
         $this->io->write('<comment>Performance optimization active for production environment</comment>');
     }
 
