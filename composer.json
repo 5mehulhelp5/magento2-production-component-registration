@@ -1,0 +1,26 @@
+{
+    "name": "hryvinskyi/magento2-production-component-registration",
+    "description": "Magento 2 Composer plugin to generate component registration file in production environments",
+    "type": "composer-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Hryvinskyi",
+            "email": "info@hryvinskyi.com"
+        }
+    ],
+    "require": {
+        "php": "^7.4 || ^8.0",
+        "composer-plugin-api": "^2.0",
+        "magento/framework": "*",
+        "laminas/laminas-code": "^3.0 || ^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Hryvinskyi\\ProductionComponentRegistration\\": "src/"
+        }
+    },
+    "extra": {
+        "class": "Hryvinskyi\\ProductionComponentRegistration\\ProductionComposerPlugin"
+    }
+}
