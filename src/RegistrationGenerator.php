@@ -118,7 +118,10 @@ final class RegistrationGenerator
     {
         $reflection = new \ReflectionClass(ComponentRegistrar::class);
         $pathsProperty = $reflection->getProperty('paths');
-        $pathsProperty->setAccessible(true);
+        if (PHP_VERSION_ID < 80100) {
+            // Reflection reads a private property without this call from PHP 8.1 on, and PHP 8.5 deprecates it.
+            $pathsProperty->setAccessible(true);
+        }
 
         return $pathsProperty->getValue() ?? [];
     }
